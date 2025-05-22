@@ -1,14 +1,12 @@
 #include "running_avg.h"
+#include <string.h>
 
 void running_avg_init(struct circular_buffer *cb)
 {
+    memset(cb->buffer, 0.0f, sizeof(cb->buffer));
     cb->index = 0;
     cb->count = 0;
-    cb->sum = 0;
-    for (int i = 0; i < BUFFER_SIZE; i++)
-    {
-        cb->buffer[i] = 0;
-    }
+    cb->sum = 0.0f;
 }
 
 void running_avg_add(struct circular_buffer *cb, float value)
