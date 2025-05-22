@@ -1,5 +1,6 @@
 #include "pid.h"
 #include "esp_timer.h"
+#include <string.h>
 
 void pid_init(struct pid *data, float *input, float *output, float *setpoint,
               float kp, float ki, float kd, float sample_time_ms, float out_min,
@@ -89,9 +90,9 @@ void pid_set_mode(struct pid *data, pid_mode_e mode)
 void pid_reset(struct pid *data)
 {
     memset(data, 0, sizeof(*data));
-    data->sample_time = 100;
-    data->out_min = 0.0f;
-    data->out_max = 1023.0f;
+    pid_set_direction(data, PID_DIRECT);
+    pid_set_sample_time(data, 100);
+    pid_set_output_limits(data, 0.0f, 1023.0f);
 }
 
 pid_status_e pid_compute(struct pid *data)
@@ -113,7 +114,7 @@ pid_status_e pid_compute(struct pid *data)
         data->integral += data->ki * error;
         data->integral = clamp(data->integral, data->out_min, data->out_max);
 
-        float output = (data->p_on == 1) ? (data->kp * error) : (-data->kp * d_input);
+        float output = (data->p_on == P_ON_ERROR) ? (data->kp * error) : (-data->kp * d_input);
 
         output += data->integral - data->kd * d_input;
         *data->output = clamp(output, data->out_min, data->out_max);
