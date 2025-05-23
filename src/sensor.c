@@ -4,6 +4,11 @@
 #include "lambda.h"
 
 struct sensor_avg avg;
+struct sensor_data shared_sensor_data;
+SemaphoreHandle_t sensor_mutex;
+TaskHandle_t heater_task_handle;
+TaskHandle_t pump_task_handle;
+
 
 static inline float volts(int adc)
 {
