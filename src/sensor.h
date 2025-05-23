@@ -4,18 +4,27 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
+#include "running_avg.h"
 
-struct sensor_data shared_sensor_data;
-SemaphoreHandle_t sensor_mutex;
+extern struct sensor_avg avg;
+extern struct sensor_data shared_sensor_data;
+extern SemaphoreHandle_t sensor_mutex;
+extern TaskHandle_t heater_task_handle;
+extern TaskHandle_t pump_task_handle;
 
-TaskHandle_t heater_task_handle;
-TaskHandle_t pump_task_handle;
+struct sensor_avg
+{
+    struct circular_buffer vgnd;
+    struct circular_buffer ipa;
+    struct circular_buffer nernst;
+};
 
 struct sensor_data
 {
     float vgnd;
     float nernst;
     float ipa;
+    float nernst_r;
     float lambda;
 };
 
