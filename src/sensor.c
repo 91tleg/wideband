@@ -1,11 +1,9 @@
 #include "sensor.h"
 #include "defines.h"
-#include "running_avg.h"
 #include "esp_log.h"
+#include "lambda.h"
 
-struct circular_buffer vgnd_avg;
-struct circular_buffer ipa_avg;
-struct circular_buffer nernst_avg;
+struct sensor_avg avg;
 
 static inline float volts(int adc)
 {
@@ -14,20 +12,20 @@ static inline float volts(int adc)
 
 static float vgnd_volts(void)
 {
-    running_avg_add(&vgnd_avg, volts(gpio_get_level(PIN_VGND_SENSE)));
-    return running_avg_get(&vgnd_avg);
+    running_avg_add(&avg.vgnd, volts(gpio_get_level(PIN_VGND_SENSE)));
+    return running_avg_get(&avg.vgnd);
 }
 
 static float nernst_volts(void)
 {
-    running_avg_add(&nernst_avg, volts(gpio_get_level(PIN_NERNST_PULSE)));
-    return running_avg_get(&nernst_avg);
+    running_avg_add(&avg.nernst, volts(gpio_get_level(PIN_NERNST_PULSE)));
+    return running_avg_get(&avg.nernst);
 }
 
 static float pump_volts(void)
 {
-    running_avg_add(&ipa_avg, volts(gpio_get_level(PIN_NERNST_PULSE)));
-    return running_avg_get(&ipa_avg);
+    running_avg_add(&avg.ipa, volts(gpio_get_level(PIN_NERNST_PULSE)));
+    return running_avg_get(&avg.ipa);
 }
 
 static float nernst_resistance_volts(void)
@@ -41,13 +39,6 @@ static float nernst_resistance_volts(void)
     vTaskDelay(pdMS_TO_TICKS(200));
 
     return volts(after - before);
-}
-
-void sensor_init(void)
-{
-    running_avg_init(&vgnd_avg);
-    running_avg_init(&nernst_avg);
-    running_avg_init(&ipa_avg);
 }
 
 static void input_gpio_init(void)
@@ -84,22 +75,19 @@ void sensor_gpio_init(void)
 
 void sensor_task(void *parameters)
 {
-    struct circular_buffer avg_vgnd, avg_nernst, avg_pump;
-    running_avg_init(&avg_vgnd);
-    running_avg_init(&avg_nernst);
-    running_avg_init(&avg_pump);
-
     while (1)
     {
         float vgnd = vgnd_volts();
         float nernst = nernst_volts();
         float ipa = pump_volts();
+        float nernst_r = nernst_resistance_volts();
         float lambda = get_lambda(ipa);
 
         struct sensor_data data = {
             .vgnd = vgnd,
             .nernst = nernst,
             .ipa = ipa,
+            .nernst_r = nernst_r,
             .lambda = lambda};
 
         ESP_LOGI("SENSOR", "vgnd:%f  nernst:%f  pump:%f  lambda:%f",
